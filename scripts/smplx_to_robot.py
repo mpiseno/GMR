@@ -80,12 +80,14 @@ if __name__ == "__main__":
         tgt_robot=args.robot,
     )
     
+    print('made GMR object')
     robot_motion_viewer = RobotMotionViewer(robot_type=args.robot,
                                             motion_fps=aligned_fps,
                                             transparent_robot=0,
                                             record_video=args.record_video,
                                             video_path=f"videos/{args.robot}_{args.smplx_file.split('/')[-1].split('.')[0]}.mp4",)
     
+    print("Robot motion viewer initialized.")
 
     curr_frame = 0
     # FPS measurement variables
