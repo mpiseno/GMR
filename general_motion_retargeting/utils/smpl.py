@@ -9,6 +9,7 @@ def load_smpl_file(smpl_file):
     smpl_data = np.load(smpl_file, allow_pickle=True)
     return smpl_data
 
+
 def load_smplx_file(smplx_file, smplx_body_model_path):
     smplx_data = np.load(smplx_file, allow_pickle=True)
     body_model = smplx.create(
@@ -25,7 +26,7 @@ def load_smplx_file(smplx_file, smplx_body_model_path):
         global_orient=torch.tensor(smplx_data["root_orient"]).float(), # (N, 3)
         body_pose=torch.tensor(smplx_data["pose_body"]).float(), # (N, 63)
         transl=torch.tensor(smplx_data["trans"]).float(), # (N, 3)
-        left_hand_pose=torch.zeros(num_frames, 45).float(),
+        left_hand_pose=torch.zeros(num_frames, 45).float(), # Michael - does not consider hands right now
         right_hand_pose=torch.zeros(num_frames, 45).float(),
         jaw_pose=torch.zeros(num_frames, 3).float(),
         leye_pose=torch.zeros(num_frames, 3).float(),
