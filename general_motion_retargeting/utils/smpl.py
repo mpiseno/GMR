@@ -194,7 +194,6 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
             joint_orientations.append(rot)
             result[joint_name] = (single_joints[i], rot.as_quat(scalar_first=True))
 
-
         smplx_data_frames.append(result)
 
     return smplx_data_frames, aligned_fps

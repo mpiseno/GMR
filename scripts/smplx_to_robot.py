@@ -7,7 +7,7 @@ import numpy as np
 
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
 from general_motion_retargeting import RobotMotionViewer
-from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast
+from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast, visualize_human_motion
 
 from rich import print
 
@@ -57,6 +57,12 @@ if __name__ == "__main__":
         help="Limit the rate of the retargeted robot motion to keep the same as the human motion.",
     )
 
+    parser.add_argument(
+        "--debug",
+        default=False,
+        action="store_true",
+    )
+
     args = parser.parse_args()
 
 
@@ -71,8 +77,7 @@ if __name__ == "__main__":
     # align fps
     tgt_fps = 30
     smplx_data_frames, aligned_fps = get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=tgt_fps)
-    
-   
+
     # Initialize the retargeting system
     retarget = GMR(
         actual_human_height=actual_human_height,
