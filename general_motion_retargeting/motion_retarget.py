@@ -41,7 +41,6 @@ class GeneralMotionRetargeting:
         # adjust the human scale table
         for key in ik_config["human_scale_table"].keys():
             ik_config["human_scale_table"][key] = ik_config["human_scale_table"][key] * ratio
-    
 
         # used for retargeting
         self.ik_match_table1 = ik_config["ik_match_table1"]
@@ -118,6 +117,8 @@ class GeneralMotionRetargeting:
         # scale human data in local frame
         human_data = self.to_numpy(human_data)
         human_data = self.scale_human_data(human_data, self.human_root_name, self.human_scale_table)
+
+        # NOTE: Michael - If something is added only to ik_match_table2, then the corresponding entry will not exist is self.rot_offsets1, and this will error. We should have one source of truth for the pos and rot offsets.
         human_data = self.offset_human_data(human_data, self.pos_offsets1, self.rot_offsets1)
         if offset_to_ground:
             human_data = self.offset_human_data_to_ground(human_data)
@@ -128,7 +129,7 @@ class GeneralMotionRetargeting:
                 task = self.human_body_to_task1[body_name]
                 pos, rot = human_data[body_name]
                 task.set_target(mink.SE3.from_rotation_and_translation(mink.SO3(rot), pos))
-        
+
         if self.use_ik_match_table2:
             for body_name in self.human_body_to_task2.keys():
                 task = self.human_body_to_task2[body_name]

@@ -7,7 +7,7 @@ import numpy as np
 
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
 from general_motion_retargeting import RobotMotionViewer
-from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast, visualize_human_motion
+from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast
 
 from rich import print
 
@@ -125,6 +125,7 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
+        i = 0
         smplx_data = smplx_data_frames[i]
 
         # retarget
