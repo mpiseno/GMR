@@ -26,23 +26,28 @@ def load_smplx_data(smplx_file, smplx_body_model_dir):
         gender=str(smplx_data["gender"]),
         use_pca=False,
         ext="pkl",
+        # num_pca_comps=24,
+        flat_hand_mean=True
     )
     num_frames = smplx_data["pose_body"].shape[0]
     smplx_output = body_model(
         # Global orientation of the root in axis-angle representation
-        global_orient=torch.tensor(smplx_data["root_orient"]).float(),  # (N, 3)
+        global_orient=torch.tensor(smplx_data["root_orient"]).float(),      # (T, 3)
 
         # Body shape parameters (betas)
-        betas=torch.tensor(smplx_data["betas"]).float().view(1, -1),    # (16,)
+        betas=torch.tensor(smplx_data["betas"]).float().view(1, -1),        # (1, 16)
+        # betas=torch.tensor(betas).float().view(1, -1),        # (1, 16)
 
         # Orientations of body joints in axis-angle representation
-        body_pose=torch.tensor(smplx_data["pose_body"]).float(),        # (N, 63)
+        body_pose=torch.tensor(smplx_data["pose_body"]).float(),            # (T, 63)
 
         # Global translation of the root
-        transl=torch.tensor(smplx_data["trans"]).float(),               # (N, 3)
+        transl=torch.tensor(smplx_data["trans"]).float(),                   # (T, 3)
 
-        left_hand_pose=torch.zeros(num_frames, 45).float(),
-        right_hand_pose=torch.zeros(num_frames, 45).float(),
+        # Orientations of hands in axis-angle representation
+        left_hand_pose=torch.tensor(smplx_data["left_hand_pose"]).float(),  # (T, 45)
+        right_hand_pose=torch.tensor(smplx_data["right_hand_pose"]).float(), # (T, 45)
+
         jaw_pose=torch.zeros(num_frames, 3).float(),
         leye_pose=torch.zeros(num_frames, 3).float(),
         reye_pose=torch.zeros(num_frames, 3).float(),

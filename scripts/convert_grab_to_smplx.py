@@ -1,8 +1,8 @@
 import os
-import joblib
 import numpy as np
 import pickle
 from pathlib import Path
+import ipdb
 
 
 # these paths are from the GRAB dataset npz files (not the pt files you get from their preprocessing code)
@@ -16,32 +16,17 @@ motion_files = [
 ]
 
 motion_files = [
-    '/move/u/mpiseno/data/GRAB/grab/s1/apple_lift.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/banana_pass_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/binoculars_see_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/cubelarge_lift.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/cubesmall_lift.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/duck_inspect_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/elephant_offhand_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/mug_drink_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/teapot_pour_1.npz',
-    '/move/u/mpiseno/data/GRAB/grab/s1/waterbottle_open_1.npz',
+    'data/GRAB/s1/apple_lift.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/banana_pass_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/binoculars_see_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/cubelarge_lift.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/cubesmall_lift.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/duck_inspect_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/elephant_offhand_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/mug_drink_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/teapot_pour_1.npz',
+    # '/move/u/mpiseno/data/GRAB/grab/s1/waterbottle_open_1.npz',
 ]
-# betas_dir = Path(motion_files[0]).parent.parent.parent / "tools" / "subject_meshes"
-# betas = {
-#     # male
-#     's1': np.load(betas_dir / "male" / "s1_betas.npy"),
-#     's2': np.load(betas_dir / "male" / "s2_betas.npy"),
-#     's9': np.load(betas_dir / "male" / "s8_betas.npy"),
-#     's9': np.load(betas_dir / "male" / "s9_betas.npy"),
-#     's10': np.load(betas_dir / "male" / "s10_betas.npy"),
-#     # female
-#     's3': np.load(betas_dir / "female" / "s3_betas.npy"),
-#     's4': np.load(betas_dir / "female" / "s4_betas.npy"),
-#     's5': np.load(betas_dir / "female" / "s5_betas.npy"),
-#     's6': np.load(betas_dir / "female" / "s6_betas.npy"),
-#     's7': np.load(betas_dir / "female" / "s7_betas.npy"),
-# }
 
 # save as individual files
 target_dir = "./data/GRAB_smplx"
@@ -53,6 +38,8 @@ for motion_file in motion_files:
 
     motion_file.split('/')[:-3]
     body_dict = data["body"].item()["params"]
+    lhand_dict = data["lhand"].item()["params"]
+    rhand_dict = data["rhand"].item()["params"]
     num_frames = body_dict["body_pose"].shape[0]
 
     # Create new dict and just save the stuff we need. Also rename some stuff to fit this codebase
@@ -65,10 +52,10 @@ for motion_file in motion_files:
     smplx_data["root_orient"] = body_dict["global_orient"]
     smplx_data["trans"] = body_dict["transl"]
 
-    poses = np.concatenate([body_dict["body_pose"], 
-                            np.zeros((num_frames, 102))],
-                            axis=1)
-    smplx_data["poses"] = poses
+    # The fullpose key contains the (T, 45) dim axis-angle rotations
+    # The hand_pose key (not used here) contains the (T, 24) dim betas
+    smplx_data["left_hand_pose"] = lhand_dict["fullpose"]
+    smplx_data["right_hand_pose"] = rhand_dict["fullpose"]
 
     # use pickle to save
     out_dir = f"{target_dir}/{subject}"

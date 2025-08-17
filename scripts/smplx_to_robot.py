@@ -4,6 +4,7 @@ import os
 import time
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
 from general_motion_retargeting import RobotMotionViewer
@@ -141,6 +142,7 @@ if __name__ == "__main__":
             human_pos_offset=np.array([0.0, 0.0, 0.0]),
             show_human_body_name=False,
             rate_limit=args.rate_limit,
+            follow_camera=False
         )
         if args.save_path is not None:
             qpos_list.append(qpos)
