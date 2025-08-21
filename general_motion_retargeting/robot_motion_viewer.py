@@ -1,13 +1,17 @@
 import os
 import time
+
 import mujoco as mj
 import mujoco.viewer as mjv
 import imageio
+import numpy as np
+
+from mujoco import _structs
 from scipy.spatial.transform import Rotation as R
 from general_motion_retargeting import ROBOT_XML_DICT, ROBOT_BASE_DICT, VIEWER_CAM_DISTANCE_DICT
 from loop_rate_limiters import RateLimiter
-import numpy as np
 from rich import print
+
 
 
 def draw_frame(
@@ -75,10 +79,9 @@ class RobotMotionViewer:
 
         # self.viewer.opt.flags[mj.mjtVisFlag.mjVIS_TRANSPARENT] = transparent_robot
 
-        # # Michael - for offscreen rendering
-        # from mujoco import _structs
-        # self.camera = _structs.MjvCamera()
-        # self.camera.fixedcamid = 0
+        # Create separate camera for video recording so we can have viewer open at the same time
+        self.camera = _structs.MjvCamera()
+        self.camera.fixedcamid = 0
         
         if self.record_video:
             assert video_path is not None, "Please provide video path for recording"
@@ -129,16 +132,10 @@ class RobotMotionViewer:
             self.viewer.cam.elevation = -10  # 正面视角，轻微向下看
             # self.viewer.cam.azimuth = 180    # 正面朝向机器人
 
-            # # Michael added this
-            # self.camera.lookat = self.data.xpos[self.model.body(self.robot_base).id]
-            # self.camera.distance = self.viewer_cam_distance
-            # self.camera.elevation = -10
-
-        # Michael - updated to support offscreen render
-        # If we do offscreen render, then the order of operations is zero geoms, then update scene, then add additional geoms (i.e. the human body data visuals.)
-        # If we are using the viewer instead, the order is zero geoms, then add additional geoms, then sync, then update scene. I think this option will not add human body data to visuals...
-        # self.renderer.scene.ngeom = 0
-        # self.renderer.update_scene(self.data, camera=self.camera)
+        if self.record_video:
+            self.camera.lookat = self.data.xpos[self.model.body(self.robot_base).id]
+            self.camera.distance = self.viewer_cam_distance
+            self.camera.elevation = -10
         
         if human_motion_data is not None:
             # Clean custom geometry
@@ -155,24 +152,13 @@ class RobotMotionViewer:
                     pos_offset=human_pos_offset,
                 )
 
-                # Michael - updated to support offscreen render
-                # draw_frame(
-                #     pos,
-                #     R.from_quat(rot, scalar_first=True).as_matrix(),
-                #     self.renderer.scene,
-                #     human_point_scale,
-                #     pos_offset=human_pos_offset,
-                #     joint_name=human_body_name if show_human_body_name else None
-                # )
-
         self.viewer.sync()
         if rate_limit is True:
             self.rate_limiter.sleep()
 
         if self.record_video:
             # Use renderer for proper offscreen rendering
-            # Michael - comment out if using offscreen rendering
-            self.renderer.update_scene(self.data, camera=self.viewer.cam)
+            self.renderer.update_scene(self.data, camera=self.camera)
             img = self.renderer.render()
             self.mp4_writer.append_data(img)
     

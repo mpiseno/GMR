@@ -107,7 +107,6 @@ if __name__ == "__main__":
     
     # Start the viewer
     i = 0
-
     while True:
         if args.loop:
             i = (i + 1) % len(smplx_data_frames)
@@ -126,11 +125,12 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
-        i = 0
+        # i = 0
         smplx_data = smplx_data_frames[i]
 
         # retarget
         qpos = retarget.retarget(smplx_data)
+        # qpos = retarget.configuration.data.qpos.copy()
 
         # visualize
         robot_motion_viewer.step(
@@ -138,6 +138,7 @@ if __name__ == "__main__":
             root_rot=qpos[3:7],
             dof_pos=qpos[7:],
             human_motion_data=retarget.scaled_human_data,
+            # human_motion_data=None,
             # human_motion_data=smplx_data,
             human_pos_offset=np.array([0.0, 0.0, 0.0]),
             show_human_body_name=False,

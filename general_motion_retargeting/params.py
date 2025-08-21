@@ -20,7 +20,7 @@ IK_CONFIG_DICT = {
     # offline data
     "smplx":{
         "unitree_g1": IK_CONFIG_ROOT / "smplx_to_g1.json",
-        "unitree_g1_with_hands": IK_CONFIG_ROOT / "smplx_to_g1.json",
+        "unitree_g1_with_hands": IK_CONFIG_ROOT / "smplx_to_g1_with_hands.json",
         "booster_t1": IK_CONFIG_ROOT / "smplx_to_t1.json",
         "stanford_toddy": IK_CONFIG_ROOT / "smplx_to_toddy.json",
         "fourier_n1": IK_CONFIG_ROOT / "smplx_to_n1.json",

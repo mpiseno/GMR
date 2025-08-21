@@ -23,7 +23,12 @@
         "left_wrist": 0.8,
         "right_wrist": 0.8,
 
-        "right_index3": 0.9
+        "left_index3": 0.9,
+        "right_index3": 0.9,
+        "left_ring3": 0.9,
+        "right_ring3": 0.9,
+        "left_thumb3": 0.9,
+        "right_thumb3": 0.9
     },
 
     "ik_match_table1": {
@@ -203,6 +208,49 @@
                 0.0
             ]
         ],
+        "left_hand_index_1_link": [
+            "left_index3",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_middle_1_link": [
+            "left_ring3",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_thumb_2_link": [
+            "left_thumb3",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [ 0.65328148, -0.27059805, -0.27059805,  0.65328148]
+        ],
         "right_shoulder_yaw_link": [
             "right_shoulder",
             0,
@@ -251,7 +299,7 @@
                 -1.0
             ]
         ],
-        "right_hand_index_finger_tip": [
+        "right_hand_index_1_link": [
             "right_index3",
             0,
             10,
@@ -261,11 +309,38 @@
                 0.0
             ],
             [
-                0.70710678,
                 0.0,
                 0.0,
-                0.70710678
+                0.0,
+                -1.0
             ]
+        ],
+        "right_hand_middle_1_link": [
+            "right_ring3",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_thumb_2_link": [
+            "right_thumb3",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.65328148, 0.27059805, 0.27059805, 0.65328148]
         ]
     },
    "ik_match_table2": {
@@ -436,6 +511,49 @@
                 0.0
             ]
         ],
+        "left_hand_index_1_link": [
+            "left_index3",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_middle_1_link": [
+            "left_ring3",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_thumb_2_link": [
+            "left_thumb3",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [ 0.65328148, -0.27059805, -0.27059805,  0.65328148]
+        ],
         "right_shoulder_yaw_link": [
             "right_shoulder",
             10,
@@ -484,7 +602,7 @@
                 -1.0
             ]
         ],
-        "right_hand_index_finger_tip": [
+        "right_hand_index_1_link": [
             "right_index3",
             10,
             5,
@@ -494,11 +612,38 @@
                 0.0
             ],
             [
-                0.70710678,
                 0.0,
                 0.0,
-                0.70710678
+                0.0,
+                -1.0
             ]
+        ],
+        "right_hand_middle_1_link": [
+            "right_ring3",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_thumb_2_link": [
+            "right_thumb3",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.65328148, 0.27059805, 0.27059805, 0.65328148]
         ]
     }
 }

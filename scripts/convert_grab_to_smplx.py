@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 import ipdb
+from scipy.spatial.transform import Rotation as R
 
 
 # these paths are from the GRAB dataset npz files (not the pt files you get from their preprocessing code)
@@ -54,12 +55,31 @@ for motion_file in motion_files:
 
     # The fullpose key contains the (T, 45) dim axis-angle rotations
     # The hand_pose key (not used here) contains the (T, 24) dim betas
-    smplx_data["left_hand_pose"] = lhand_dict["fullpose"]
-    smplx_data["right_hand_pose"] = rhand_dict["fullpose"]
+    # ipdb.set_trace()
+
+    left_hand_pose = lhand_dict["fullpose"]
+    right_hand_pose = rhand_dict["fullpose"]
+    # for t in range(num_frames):
+    #     cur_pose = R.from_rotvec(left_hand_pose[t, 36:39])
+    #     #offset by 45 degrees 
+    #     cur_pose = R.from_euler('y', -np.pi/4, degrees=False) * cur_pose
+    #     left_hand_pose[t, 36:39] = cur_pose.as_rotvec()
+
+    smplx_data["left_hand_pose"] = left_hand_pose
+    smplx_data["right_hand_pose"] = right_hand_pose
+
+    # smplx_data["left_hand_pose"] = lhand_dict["hand_pose"]
+    # smplx_data["right_hand_pose"] = rhand_dict["hand_pose"]
+
+    # smplx_data["left_hand_pose"] = body_dict["left_hand_pose"]
+    # smplx_data["right_hand_pose"] = body_dict["right_hand_pose"]
+
+    smplx_data["full_pose"] = body_dict["fullpose"]
+
 
     # use pickle to save
     out_dir = f"{target_dir}/{subject}"
     os.makedirs(out_dir, exist_ok=True)
     with open(f"{out_dir}/{seq_name}.pkl", "wb") as f:
         pickle.dump(smplx_data, f)
-    print(f"saved {seq_name}")
+    print(f"saved to {out_dir}/{seq_name}.pkl")

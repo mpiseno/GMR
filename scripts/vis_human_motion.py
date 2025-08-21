@@ -11,6 +11,7 @@ import ipdb
 
 from scipy.spatial.transform import Rotation as R
 from smplx.joint_names import JOINT_NAMES
+from rich import print
 
 
 JOINTS_TO_TRACK = [
@@ -47,6 +48,8 @@ def load_smplx_data(smplx_file, smplx_body_model_dir):
         # Orientations of hands in axis-angle representation
         left_hand_pose=torch.tensor(smplx_data["left_hand_pose"]).float(),  # (T, 45)
         right_hand_pose=torch.tensor(smplx_data["right_hand_pose"]).float(), # (T, 45)
+        # left_hand_pose=torch.zeros(num_frames, 45).float(),  # (T, 45)
+        # right_hand_pose=torch.zeros(num_frames, 45).float(), # (T, 45)
 
         jaw_pose=torch.zeros(num_frames, 3).float(),
         leye_pose=torch.zeros(num_frames, 3).float(),
@@ -56,10 +59,14 @@ def load_smplx_data(smplx_file, smplx_body_model_dir):
     return smplx_output, body_model, smplx_data
 
 
-def FK(smplx_output, body_model):
+def FK(smplx_output, body_model, smplx_data):
     full_pose = smplx_output.full_pose.detach().cpu().numpy()
     full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
     global_orient = smplx_output.global_orient.detach().cpu().numpy()
+
+    # global_orient = smplx_data["root_orient"]
+    # full_pose = smplx_data["full_pose"]
+    # full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
 
     all_rots = []
     parents = body_model.parents
@@ -73,7 +80,7 @@ def FK(smplx_output, body_model):
         
         orientations = np.stack([o.as_quat(scalar_first=True) for o in orientations])
         all_rots.append(orientations)
-    
+
     all_rots = np.stack(all_rots)
     return all_rots
 
@@ -95,13 +102,14 @@ if __name__ == "__main__":
     joint_names = JOINT_NAMES[:len(body_model.parents)]
 
     # Do FK for global joint orientations
-    joint_rots = FK(smplx_output=smplx_output, body_model=body_model)
+    joint_rots = FK(smplx_output=smplx_output, body_model=body_model, smplx_data=smplx_data)
     assert joint_rots.shape[:2] == joints.shape[:2], "Joint rotations and joints must have the same time dimension"
 
     t = 0
     src_fps, tgt_fps = smplx_data["mocap_frame_rate"].item(), 30
     frame_skip = int(src_fps / tgt_fps)
     T, J = joints.shape[:2]
+    assert J == len(joint_names), "Number of joints must match the number of joint names"
 
     '''
     Viser axes are (x, y, z) = (red, green, blue)

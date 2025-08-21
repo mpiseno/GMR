@@ -10,14 +10,15 @@ def load_smpl_file(smpl_file):
     return smpl_data
 
 
-def load_smplx_file(smplx_file, smplx_body_model_path):
+def load_smplx_file(smplx_file, smplx_body_model_path, ):
     smplx_data = np.load(smplx_file, allow_pickle=True)
     body_model = smplx.create(
         smplx_body_model_path,
         "smplx",
         gender=str(smplx_data["gender"]),
         use_pca=False,
-        ext="pkl", # Michael added this
+        ext="pkl",
+        flat_hand_mean=True, # TODO: set to False if not using hand data
     )
     
     num_frames = smplx_data["pose_body"].shape[0]
@@ -26,8 +27,12 @@ def load_smplx_file(smplx_file, smplx_body_model_path):
         global_orient=torch.tensor(smplx_data["root_orient"]).float(), # (N, 3)
         body_pose=torch.tensor(smplx_data["pose_body"]).float(), # (N, 63)
         transl=torch.tensor(smplx_data["trans"]).float(), # (N, 3)
-        left_hand_pose=torch.zeros(num_frames, 45).float(), # Michael - does not consider hands right now
-        right_hand_pose=torch.zeros(num_frames, 45).float(),
+
+        # TODO: dynamical change bewteen using hands data and using zeros
+        # left_hand_pose=torch.zeros(num_frames, 45).float(),
+        # right_hand_pose=torch.zeros(num_frames, 45).float(),
+        left_hand_pose=torch.tensor(smplx_data["left_hand_pose"]).float(),  # (T, 45)
+        right_hand_pose=torch.tensor(smplx_data["right_hand_pose"]).float(), # (T, 45)
         jaw_pose=torch.zeros(num_frames, 3).float(),
         leye_pose=torch.zeros(num_frames, 3).float(),
         reye_pose=torch.zeros(num_frames, 3).float(),

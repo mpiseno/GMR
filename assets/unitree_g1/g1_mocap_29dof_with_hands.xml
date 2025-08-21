@@ -270,7 +270,7 @@
                                 <geom class="visual" mesh="left_hand_thumb_2_link"/>
                                 <geom class="collision" mesh="left_hand_thumb_2_link"/>
 
-                                <body name="left_hand_thumb_finger_tip" pos="0.0 -0.048 0.0"></body>
+                                <!-- <body name="left_hand_thumb_finger_tip" pos="0.0 -0.048 0.0"></body> -->
 
                               </body>
                             </body>
@@ -436,7 +436,7 @@
                               <geom class="visual" mesh="right_hand_index_1_link"/>
                               <geom class="collision" mesh="right_hand_index_1_link"/>
 
-                                <body name="right_hand_index_finger_tip" pos="0.048 0.0 0.0"></body>
+                                <!-- <body name="right_hand_index_finger_tip" pos="0.048 0.0 0.0"></body> -->
 
                             </body>
                           </body>
