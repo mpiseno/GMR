@@ -5,15 +5,35 @@ from scipy.spatial.transform import Rotation as R
 from smplx.joint_names import JOINT_NAMES
 from scipy.interpolate import interp1d
 
+
+FINGER_JOINT_NAMES = [
+    "left_index1", "left_index2", "left_index3",
+    "left_middle1", "left_middle2", "left_middle3",
+    "left_pinky1", "left_pinky2", "left_pinky3",
+    "left_ring1", "left_ring2", "left_ring3",
+    "left_thumb1", "left_thumb2", "left_thumb3",
+    "right_index1", "right_index2", "right_index3",
+    "right_middle1", "right_middle2", "right_middle3",
+    "right_pinky1", "right_pinky2", "right_pinky3",
+    "right_ring1", "right_ring2", "right_ring3",
+    "right_thumb1", "right_thumb2", "right_thumb3"  
+]
+
+FINGERTIP_NAMES = [
+    "left_thumb", "left_index", "left_middle", "left_ring", "left_pinky",
+    "right_thumb", "right_index", "right_middle", "right_ring", "right_pinky"
+]
+
+
 def load_smpl_file(smpl_file):
     smpl_data = np.load(smpl_file, allow_pickle=True)
     return smpl_data
 
 
-def load_smplx_file(smplx_file, smplx_body_model_path, ):
+def load_smplx_file(smplx_file, smplx_body_model_dir):
     smplx_data = np.load(smplx_file, allow_pickle=True)
     body_model = smplx.create(
-        smplx_body_model_path,
+        smplx_body_model_dir,
         "smplx",
         gender=str(smplx_data["gender"]),
         use_pca=False,
@@ -202,3 +222,29 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
         smplx_data_frames.append(result)
 
     return smplx_data_frames, aligned_fps
+
+
+def get_joints_from_names(smplx_output, joint_names):
+    joints = smplx_output.joints.detach().cpu().numpy().squeeze()
+    idxs = [JOINT_NAMES.index(name) for name in joint_names]
+    return joints[:, idxs]
+
+
+def rotation_from_two_points(p0, p1, up=(0,0,1), negate_x=False):
+    p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+    x = (p1 - p0) * int(-1 if negate_x else 1)
+    nx = np.linalg.norm(x)
+    if nx < 1e-9:
+        raise ValueError("Points are coincident.")
+    x = x / nx
+
+    u = np.asarray(up, float)
+    u = u / np.linalg.norm(u)
+    if abs(np.dot(x, u)) > 0.99:
+        u = np.array([0.0, 1.0, 0.0])  # fallback
+
+    y = u - np.dot(u, x) * x
+    y /= np.linalg.norm(y)
+    z = np.cross(x, y)
+    Rmat = np.column_stack([x, y, z])
+    return R.from_matrix(Rmat)

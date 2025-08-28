@@ -13,6 +13,12 @@ from scipy.spatial.transform import Rotation as R
 from smplx.joint_names import JOINT_NAMES
 from rich import print
 
+from general_motion_retargeting.utils.smpl import (
+    FINGERTIP_NAMES, FINGER_JOINT_NAMES, 
+    get_joints_from_names, rotation_from_two_points
+)
+
+
 
 JOINTS_TO_TRACK = [
     'pelvis', 'left_hip', 'right_hip', 'spine1', 'left_knee', 'right_knee', 'spine2', 'left_ankle', 'right_ankle', 'spine3', 'left_foot', 'right_foot', 'neck', 'head', 'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_index1', 'left_index2', 'left_index3', 'left_middle1', 'left_middle2', 'left_middle3', 'left_pinky1', 'left_pinky2', 'left_pinky3', 'left_ring1', 'left_ring2', 'left_ring3', 'left_thumb1', 'left_thumb2', 'left_thumb3', 'right_index1', 'right_index2', 'right_index3', 'right_middle1', 'right_middle2', 'right_middle3', 'right_pinky1', 'right_pinky2', 'right_pinky3', 'right_ring1', 'right_ring2', 'right_ring3', 'right_thumb1', 'right_thumb2', 'right_thumb3'
@@ -59,17 +65,8 @@ def load_smplx_data(smplx_file, smplx_body_model_dir):
     return smplx_output, body_model, smplx_data
 
 
-def FK(smplx_output, body_model, smplx_data):
-    full_pose = smplx_output.full_pose.detach().cpu().numpy()
-    full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
-    global_orient = smplx_output.global_orient.detach().cpu().numpy()
-
-    # global_orient = smplx_data["root_orient"]
-    # full_pose = smplx_data["full_pose"]
-    # full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
-
+def FK(global_orient, full_pose, parents):
     all_rots = []
-    parents = body_model.parents
     T, J, _ = full_pose.shape
     for t in range(T):
         cur_pose = full_pose[t]
@@ -85,11 +82,56 @@ def FK(smplx_output, body_model, smplx_data):
     return all_rots
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--smplx_file", type=str, required=True)
-    args = parser.parse_args()
+def correct_finger_joint_rots(joints, joint_rots, joint_names, parents):
+    # Augment parents to include fingertips
+    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
+    parents = np.concatenate([parents, fingertip_parents], axis=0)
+    assert joints.shape[1] == len(parents) and joints.shape[1] == len(joint_names)
 
+    # This array only returns the first child for each joint. Make this a dictionary if you want all children
+    children = []
+    for j in range(len(parents)):
+        if j in parents:
+            children.append(np.where(parents == j)[0][0])
+        else:
+            children.append(-1)
+    children = np.array(children)
+
+    finger_idxs = [joint_names.index(name) for name in FINGER_JOINT_NAMES]
+    assert all([idx != -1 for idx in children[finger_idxs]]), "All joints computing rotations must have children"
+    finger_joint_rots = []
+    for t in range(joints.shape[0]):
+        rots = []
+        for name, j in zip(FINGER_JOINT_NAMES, finger_idxs):
+            cur_pos = joints[t, j]
+            child_pos = joints[t, children[j]]
+            cur_rot = R.from_quat(joint_rots[t, j], scalar_first=True)
+            negate_x = 'right' in name
+            rot = rotation_from_two_points(
+                cur_pos, child_pos,
+                up=cur_rot.as_matrix()[:, 1], # Keep y axis as up direction
+                negate_x=negate_x
+            ).as_quat(scalar_first=True)
+            rots.append(rot)
+
+        rots = np.stack(rots)
+        finger_joint_rots.append(rots)
+
+    finger_joint_rots = np.stack(finger_joint_rots)
+    joint_rots[:, finger_idxs] = finger_joint_rots
+    return joint_rots
+
+
+def append_fingertip_rots(joint_rots):
+    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
+    joint_rots = np.concatenate([
+        joint_rots,
+        joint_rots[:, fingertip_parents]
+    ], axis=1)
+    return joint_rots
+
+
+def main(args):
     HERE = pathlib.Path(__file__).parent
     smplx_body_model_dir = HERE / ".." / "assets" / "body_models"
     
@@ -97,19 +139,29 @@ if __name__ == "__main__":
     vertices = smplx_output.vertices.detach().cpu().numpy().squeeze()
 
     # joints are 3D positions in global coordinates
-    joints = smplx_output.joints.detach().cpu().numpy().squeeze()
-    joints = joints[:, :len(body_model.parents)] # only joints we care about
-    joint_names = JOINT_NAMES[:len(body_model.parents)]
+    joint_names = JOINT_NAMES[:len(body_model.parents)] + FINGERTIP_NAMES
+    joints = get_joints_from_names(smplx_output, joint_names)
 
     # Do FK for global joint orientations
-    joint_rots = FK(smplx_output=smplx_output, body_model=body_model, smplx_data=smplx_data)
-    assert joint_rots.shape[:2] == joints.shape[:2], "Joint rotations and joints must have the same time dimension"
+    global_orient = smplx_output.global_orient.detach().cpu().numpy()
+    full_pose = smplx_output.full_pose.detach().cpu().numpy()
+    full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
+    parents = body_model.parents
+    joint_rots = FK(global_orient=global_orient, full_pose=full_pose, parents=parents)
+    joint_rots = correct_finger_joint_rots(joints, joint_rots, joint_names, parents)
+    joint_rots = append_fingertip_rots(joint_rots)
+
+    # finger_pos, finger_rots = modify_hand_joint_angles(full_pose, joints, joint_names, parents)
+    assert joint_rots.shape[:2] == joints.shape[:2], (
+        f"""Joint rotations and joints must have the same time dimension but got shapes """
+        f"""joint_rots: {joint_rots.shape}, joints: {joints.shape}"""
+    )
+    assert joint_rots.shape[1] == len(joint_names), "Number of joints must match the number of joint names"
 
     t = 0
     src_fps, tgt_fps = smplx_data["mocap_frame_rate"].item(), 30
     frame_skip = int(src_fps / tgt_fps)
     T, J = joints.shape[:2]
-    assert J == len(joint_names), "Number of joints must match the number of joint names"
 
     '''
     Viser axes are (x, y, z) = (red, green, blue)
@@ -127,7 +179,7 @@ if __name__ == "__main__":
     )
     frame_handles = {}
     for name, j in zip(joint_names, range(J)):
-        if name not in JOINTS_TO_TRACK: continue
+        # if name not in JOINTS_TO_TRACK: continue
         frame_handle = server.scene.add_frame(
             f"/frames/{name}",
             show_axes=True,
@@ -169,13 +221,20 @@ if __name__ == "__main__":
         
         body_handle.vertices = vertices[t]
         for name, j in zip(joint_names, range(J)):
-            if name not in JOINTS_TO_TRACK: continue
+            # if name not in JOINTS_TO_TRACK: continue
             frame_handles[name].position = joints[t, j]
             frame_handles[name].wxyz = joint_rots[t, j]
 
         end = time.time()
         sleep_time = max(0, (1 / tgt_fps) - (end - start))
         time.sleep(sleep_time)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--smplx_file", type=str, required=True)
+    args = parser.parse_args()
+    main(args)
 
 
 '''

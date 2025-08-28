@@ -79,19 +79,18 @@ if __name__ == "__main__":
     tgt_fps = 30
     smplx_data_frames, aligned_fps = get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=tgt_fps)
 
-    # Initialize the retargeting system
-    retarget = GMR(
-        actual_human_height=actual_human_height,
-        src_human="smplx",
-        tgt_robot=args.robot,
-    )
-    
     video_path = f"videos/{args.robot}_{args.smplx_file.split('/')[-1].split('.')[0]}.mp4"
     robot_motion_viewer = RobotMotionViewer(robot_type=args.robot,
                                             motion_fps=aligned_fps,
                                             transparent_robot=0,
                                             record_video=args.record_video,
                                             video_path=video_path)
+    # Initialize the retargeting system
+    retarget = GMR(
+        actual_human_height=actual_human_height,
+        src_human="smplx",
+        tgt_robot=args.robot,
+    )
 
     curr_frame = 0
     # FPS measurement variables
@@ -125,7 +124,7 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
-        # i = 0
+        i = 0
         smplx_data = smplx_data_frames[i]
 
         # retarget
