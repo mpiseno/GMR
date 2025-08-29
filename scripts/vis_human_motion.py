@@ -15,14 +15,9 @@ from rich import print
 
 from general_motion_retargeting.utils.smpl import (
     FINGERTIP_NAMES, FINGER_JOINT_NAMES, 
-    get_joints_from_names, rotation_from_two_points
+    get_joints_from_names,
+    FK, correct_finger_joint_rots, append_fingertip_rots
 )
-
-
-
-JOINTS_TO_TRACK = [
-    'pelvis', 'left_hip', 'right_hip', 'spine1', 'left_knee', 'right_knee', 'spine2', 'left_ankle', 'right_ankle', 'spine3', 'left_foot', 'right_foot', 'neck', 'head', 'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist', 'left_index1', 'left_index2', 'left_index3', 'left_middle1', 'left_middle2', 'left_middle3', 'left_pinky1', 'left_pinky2', 'left_pinky3', 'left_ring1', 'left_ring2', 'left_ring3', 'left_thumb1', 'left_thumb2', 'left_thumb3', 'right_index1', 'right_index2', 'right_index3', 'right_middle1', 'right_middle2', 'right_middle3', 'right_pinky1', 'right_pinky2', 'right_pinky3', 'right_ring1', 'right_ring2', 'right_ring3', 'right_thumb1', 'right_thumb2', 'right_thumb3'
-]
 
 
 def load_smplx_data(smplx_file, smplx_body_model_dir):
@@ -63,72 +58,6 @@ def load_smplx_data(smplx_file, smplx_body_model_dir):
         return_full_pose=True,
     )
     return smplx_output, body_model, smplx_data
-
-
-def FK(global_orient, full_pose, parents):
-    all_rots = []
-    T, J, _ = full_pose.shape
-    for t in range(T):
-        cur_pose = full_pose[t]
-        orientations = [R.from_rotvec(global_orient[t])]
-        for j in range(1, J):
-            rot = orientations[parents[j]] * R.from_rotvec(cur_pose[j])
-            orientations.append(rot)
-        
-        orientations = np.stack([o.as_quat(scalar_first=True) for o in orientations])
-        all_rots.append(orientations)
-
-    all_rots = np.stack(all_rots)
-    return all_rots
-
-
-def correct_finger_joint_rots(joints, joint_rots, joint_names, parents):
-    # Augment parents to include fingertips
-    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
-    parents = np.concatenate([parents, fingertip_parents], axis=0)
-    assert joints.shape[1] == len(parents) and joints.shape[1] == len(joint_names)
-
-    # This array only returns the first child for each joint. Make this a dictionary if you want all children
-    children = []
-    for j in range(len(parents)):
-        if j in parents:
-            children.append(np.where(parents == j)[0][0])
-        else:
-            children.append(-1)
-    children = np.array(children)
-
-    finger_idxs = [joint_names.index(name) for name in FINGER_JOINT_NAMES]
-    assert all([idx != -1 for idx in children[finger_idxs]]), "All joints computing rotations must have children"
-    finger_joint_rots = []
-    for t in range(joints.shape[0]):
-        rots = []
-        for name, j in zip(FINGER_JOINT_NAMES, finger_idxs):
-            cur_pos = joints[t, j]
-            child_pos = joints[t, children[j]]
-            cur_rot = R.from_quat(joint_rots[t, j], scalar_first=True)
-            negate_x = 'right' in name
-            rot = rotation_from_two_points(
-                cur_pos, child_pos,
-                up=cur_rot.as_matrix()[:, 1], # Keep y axis as up direction
-                negate_x=negate_x
-            ).as_quat(scalar_first=True)
-            rots.append(rot)
-
-        rots = np.stack(rots)
-        finger_joint_rots.append(rots)
-
-    finger_joint_rots = np.stack(finger_joint_rots)
-    joint_rots[:, finger_idxs] = finger_joint_rots
-    return joint_rots
-
-
-def append_fingertip_rots(joint_rots):
-    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
-    joint_rots = np.concatenate([
-        joint_rots,
-        joint_rots[:, fingertip_parents]
-    ], axis=1)
-    return joint_rots
 
 
 def main(args):
@@ -179,7 +108,6 @@ def main(args):
     )
     frame_handles = {}
     for name, j in zip(joint_names, range(J)):
-        # if name not in JOINTS_TO_TRACK: continue
         frame_handle = server.scene.add_frame(
             f"/frames/{name}",
             show_axes=True,
@@ -221,7 +149,6 @@ def main(args):
         
         body_handle.vertices = vertices[t]
         for name, j in zip(joint_names, range(J)):
-            # if name not in JOINTS_TO_TRACK: continue
             frame_handles[name].position = joints[t, j]
             frame_handles[name].wxyz = joint_rots[t, j]
 

@@ -124,7 +124,7 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
-        i = 0
+        # i = 0
         smplx_data = smplx_data_frames[i]
 
         # retarget

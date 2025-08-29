@@ -63,36 +63,8 @@ def main():
         seq_name = motion_file.split('/')[-1][:-len('.npz')] # e.g., 'apple_lift'
         motion_file.split('/')[:-3]
 
-        # Load raw data and query body model to get vertices and joints
         smplx_data = construct_smplx_data(motion_file)
-        # body_model = smplx.create(
-        #     smplx_body_model_dir,
-        #     "smplx",
-        #     gender=str(smplx_data["gender"]),
-        #     use_pca=False,
-        #     ext="pkl",
-        #     # num_pca_comps=24,
-        #     flat_hand_mean=True
-        # )
-        # smplx_output = query_body_model(smplx_data, body_model)
-        # vertices = smplx_output.vertices.detach().cpu().numpy().squeeze()
-        # joint_names = JOINT_NAMES[:len(body_model.parents)] + FINGERTIP_NAMES
-        # joints = get_joints_from_names(smplx_output, joint_names)
-
-        # # Do a FK pass to get global joint rotations
-        # global_orient = smplx_output.global_orient.detach().cpu().numpy()
-        # full_pose = smplx_output.full_pose.detach().cpu().numpy()
-        # full_pose = full_pose.reshape(full_pose.shape[0], -1, 3)
-        # parents = body_model.parents
-        # joint_rots = FK(global_orient=global_orient, full_pose=full_pose, parents=parents)
-
-        # # Correct hand joint rotations and update full_pose
-        # left_hand_pose, right_hand_pose = correct_hand_joint_rots(joints, joint_rots, joint_names, parents)
-        # smplx_data["left_hand_pose"] = left_hand_pose
-        # smplx_data["right_hand_pose"] = right_hand_pose
-
-
-        # use pickle to save
+        
         out_dir = f"{target_dir}/{subject}"
         os.makedirs(out_dir, exist_ok=True)
         with open(f"{out_dir}/{seq_name}.pkl", "wb") as f:

@@ -133,6 +133,26 @@ def slerp(rot1, rot2, t):
     
     return R.from_quat(q)
 
+
+def FK(global_orient, full_pose, parents):
+    print(f"Computing FK...")
+
+    all_rots = []
+    T, J, _ = full_pose.shape
+    for t in range(T):
+        cur_pose = full_pose[t]
+        orientations = [R.from_rotvec(global_orient[t])]
+        for j in range(1, J):
+            rot = orientations[parents[j]] * R.from_rotvec(cur_pose[j])
+            orientations.append(rot)
+        
+        orientations = np.stack([o.as_quat(scalar_first=True) for o in orientations])
+        all_rots.append(orientations)
+
+    all_rots = np.stack(all_rots)
+    return all_rots
+
+
 def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30):
     """
     Must return a dictionary with the following structure:
@@ -148,7 +168,8 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
     global_orient = smplx_output.global_orient.squeeze()
     full_body_pose = smplx_output.full_pose.reshape(num_frames, -1, 3)
     joints =  smplx_output.joints.detach().numpy().squeeze()
-    joint_names = JOINT_NAMES[: len(body_model.parents)]
+    joint_names = JOINT_NAMES[:len(body_model.parents)] + FINGERTIP_NAMES
+    joints = get_joints_from_names(smplx_output, joint_names)
     parents = body_model.parents
     
     if tgt_fps < src_fps:
@@ -201,25 +222,32 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
         aligned_fps = len(global_orient) / num_frames * src_fps
     else:
         aligned_fps = tgt_fps
-    
-    smplx_data_frames = []
-    for curr_frame in range(len(global_orient)):
-        result = {}
-        single_global_orient = global_orient[curr_frame]
-        single_full_body_pose = full_body_pose[curr_frame]
-        single_joints = joints[curr_frame]
-        joint_orientations = []
-        for i, joint_name in enumerate(joint_names):
-            if i == 0:
-                rot = R.from_rotvec(single_global_orient)
-            else:
-                rot = joint_orientations[parents[i]] * R.from_rotvec(
-                    single_full_body_pose[i].squeeze()
-                )
-            joint_orientations.append(rot)
-            result[joint_name] = (single_joints[i], rot.as_quat(scalar_first=True))
 
-        smplx_data_frames.append(result)
+    joint_rots = FK(global_orient=global_orient, full_pose=full_body_pose, parents=parents)
+    joint_rots = correct_finger_joint_rots(joints, joint_rots, joint_names, parents)
+    joint_rots = append_fingertip_rots(joint_rots)
+    
+    smplx_data_frames = [
+        {joint_name: (joints[i, j], joint_rots[i, j]) for j, joint_name in enumerate(joint_names)}
+        for i in range(len(global_orient))
+    ]
+    # for curr_frame in range(len(global_orient)):
+    #     result = {}
+    #     single_global_orient = global_orient[curr_frame]
+    #     single_full_body_pose = full_body_pose[curr_frame]
+    #     single_joints = joints[curr_frame]
+    #     joint_orientations = []
+    #     for i, joint_name in enumerate(joint_names):
+    #         if i == 0:
+    #             rot = R.from_rotvec(single_global_orient)
+    #         else:
+    #             rot = joint_orientations[parents[i]] * R.from_rotvec(
+    #                 single_full_body_pose[i].squeeze()
+    #             )
+    #         joint_orientations.append(rot)
+    #         result[joint_name] = (single_joints[i], rot.as_quat(scalar_first=True))
+
+    #     smplx_data_frames.append(result)
 
     return smplx_data_frames, aligned_fps
 
@@ -228,6 +256,57 @@ def get_joints_from_names(smplx_output, joint_names):
     joints = smplx_output.joints.detach().cpu().numpy().squeeze()
     idxs = [JOINT_NAMES.index(name) for name in joint_names]
     return joints[:, idxs]
+
+
+def correct_finger_joint_rots(joints, joint_rots, joint_names, parents):
+    print(f"Correcting finger joint rotations...")
+
+    # Augment parents to include fingertips
+    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
+    parents = np.concatenate([parents, fingertip_parents], axis=0)
+    assert joints.shape[1] == len(parents) and joints.shape[1] == len(joint_names)
+
+    # This array only returns the first child for each joint. Make this a dictionary if you want all children
+    children = []
+    for j in range(len(parents)):
+        if j in parents:
+            children.append(np.where(parents == j)[0][0])
+        else:
+            children.append(-1)
+    children = np.array(children)
+
+    finger_idxs = [joint_names.index(name) for name in FINGER_JOINT_NAMES]
+    assert all([idx != -1 for idx in children[finger_idxs]]), "All joints computing rotations must have children"
+    finger_joint_rots = []
+    for t in range(joints.shape[0]):
+        rots = []
+        for name, j in zip(FINGER_JOINT_NAMES, finger_idxs):
+            cur_pos = joints[t, j]
+            child_pos = joints[t, children[j]]
+            cur_rot = R.from_quat(joint_rots[t, j], scalar_first=True)
+            negate_x = 'right' in name
+            rot = rotation_from_two_points(
+                cur_pos, child_pos,
+                up=cur_rot.as_matrix()[:, 1], # Keep y axis as up direction
+                negate_x=negate_x
+            ).as_quat(scalar_first=True)
+            rots.append(rot)
+
+        rots = np.stack(rots)
+        finger_joint_rots.append(rots)
+
+    finger_joint_rots = np.stack(finger_joint_rots)
+    joint_rots[:, finger_idxs] = finger_joint_rots
+    return joint_rots
+
+
+def append_fingertip_rots(joint_rots):
+    fingertip_parents = [JOINT_NAMES.index(name + "3") for name in FINGERTIP_NAMES]
+    joint_rots = np.concatenate([
+        joint_rots,
+        joint_rots[:, fingertip_parents]
+    ], axis=1)
+    return joint_rots
 
 
 def rotation_from_two_points(p0, p1, up=(0,0,1), negate_x=False):
