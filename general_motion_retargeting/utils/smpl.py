@@ -32,7 +32,9 @@ def load_smpl_file(smpl_file):
 
 def load_smplx_file(smplx_file, smplx_body_model_path):
     smplx_data = np.load(smplx_file, allow_pickle=True)
-    is_smplh = "left_hand_pose" in smplx_data.keys()
+    # is_smplh = "left_hand_pose" in smplx_data.keys()
+    is_smplh = False # TODO: Change back later
+    has_object = "object_mesh_path" in smplx_data.keys()
     body_model = smplx.create(
         smplx_body_model_path,
         "smplx",
@@ -69,7 +71,7 @@ def load_smplx_file(smplx_file, smplx_body_model_path):
     else:
         human_height = 1.66 + 0.1 * smplx_data["betas"][0, 0]
     
-    return smplx_data, body_model, smplx_output, human_height, is_smplh
+    return smplx_data, body_model, smplx_output, human_height, is_smplh, has_object
 
 
 def get_smplx_data(smplx_data, body_model, smplx_output, curr_frame):
@@ -156,7 +158,7 @@ def FK(global_orient, full_pose, parents):
     return all_rots
 
 
-def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30, is_smplh=False):
+def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30, is_smplh=False, has_object=False):
     """
     Must return a dictionary with the following structure:
     {
@@ -175,6 +177,11 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
         joint_names += FINGERTIP_NAMES
     joints = get_joints_from_names(smplx_output, joint_names)
     parents = body_model.parents
+
+    object_poses = None
+    if has_object:
+        object_global_orient = smplx_data["object_global_quat"]  # (N, 4) quaternion (w, x, y, z)
+        object_global_pos = smplx_data["object_global_pos"]  # (N, 3) position
     
     if tgt_fps < src_fps:
         # perform fps alignment with proper interpolation
@@ -223,6 +230,31 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
                 joints_interp.append(interp_func(target_time))
         joints = np.stack(joints_interp, axis=1).reshape(new_num_frames, -1, 3)
         aligned_fps = len(global_orient) / num_frames * src_fps
+
+        if has_object:
+            object_global_orient_interp = []
+            object_global_pos_interp = []
+            for i in range(len(target_time)):
+                t = target_time[i]
+                idx1 = int(np.floor(t))
+                idx2 = min(idx1 + 1, num_frames - 1)
+                alpha = t - idx1
+                
+                # Orientation (quaternion)
+                rot1 = R.from_quat(object_global_orient[idx1], scalar_first=True)
+                rot2 = R.from_quat(object_global_orient[idx2], scalar_first=True)
+                interp_rot = slerp(rot1, rot2, alpha)
+                object_global_orient_interp.append(interp_rot.as_quat(scalar_first=True))
+                
+                # Position (linear)
+                pos1 = object_global_pos[idx1]
+                pos2 = object_global_pos[idx2]
+                interp_pos = (1 - alpha) * pos1 + alpha * pos2
+                object_global_pos_interp.append(interp_pos)
+            
+            object_global_orient = np.stack(object_global_orient_interp, axis=0)
+            object_global_pos = np.stack(object_global_pos_interp, axis=0)
+            object_poses = np.concatenate([object_global_pos, object_global_orient], axis=1)
     else:
         aligned_fps = tgt_fps
 
@@ -237,7 +269,7 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
         {joint_name: (joints[i, j], joint_rots[i, j]) for j, joint_name in enumerate(joint_names)}
         for i in range(len(global_orient))
     ]
-    return smplx_data_frames, aligned_fps
+    return smplx_data_frames, object_poses, aligned_fps
 
 
 def get_joints_from_names(smplx_output, joint_names):

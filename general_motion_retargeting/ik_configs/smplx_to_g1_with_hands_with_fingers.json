@@ -21,7 +21,14 @@
         "left_elbow": 0.8,
         "right_elbow": 0.8,
         "left_wrist": 0.8,
-        "right_wrist": 0.8
+        "right_wrist": 0.8,
+
+        "left_index": 0.85,
+        "left_ring": 0.85,
+        "left_thumb": 0.85,
+        "right_index": 0.85,
+        "right_ring": 0.85,
+        "right_thumb": 0.85
     },
 
     "ik_match_table1": {
@@ -196,6 +203,49 @@
                 0.0
             ]
         ],
+        "left_hand_index_finger_tip": [
+            "left_index",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_middle_finger_tip": [
+            "left_ring",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_thumb_finger_tip": [
+            "left_thumb",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.70710678, 0.0, 0.0, 0.70710678]
+        ],
         "right_shoulder_yaw_link": [
             "right_shoulder",
             0,
@@ -243,6 +293,49 @@
                 0.0,
                 -1.0
             ]
+        ],
+        "right_hand_index_finger_tip": [
+            "right_index",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_middle_finger_tip": [
+            "right_ring",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_thumb_finger_tip": [
+            "right_thumb",
+            0,
+            10,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.70710678, 0.0, 0.0, 0.70710678]
         ]
     },
    "ik_match_table2": {
@@ -408,6 +501,49 @@
                 0.0
             ]
         ],
+        "left_hand_index_finger_tip": [
+            "left_index",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_middle_finger_tip": [
+            "left_ring",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                1.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        ],
+        "left_hand_thumb_finger_tip": [
+            "left_thumb",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.70710678, 0.0, 0.0, 0.70710678]
+        ],
         "right_shoulder_yaw_link": [
             "right_shoulder",
             10,
@@ -455,6 +591,49 @@
                 0.0,
                 -1.0
             ]
+        ],
+        "right_hand_index_finger_tip": [
+            "right_index",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_middle_finger_tip": [
+            "right_ring",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0,
+                0.0,
+                -1.0
+            ]
+        ],
+        "right_hand_thumb_finger_tip": [
+            "right_thumb",
+            10,
+            5,
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [0.70710678, 0.0, 0.0, 0.70710678]
         ]
     }
 }

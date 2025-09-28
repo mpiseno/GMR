@@ -1,3 +1,9 @@
+# Michaels stuff
+notes.md
+scratch.py
+assets/unitree_g1/g1_mocap_29dof_temp.xml
+
+
 # Python
 *.egg-info/
 __pycache__/

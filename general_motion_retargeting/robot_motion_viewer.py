@@ -1,5 +1,7 @@
 import os
 import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import mujoco as mj
 import mujoco.viewer as mjv
@@ -12,6 +14,51 @@ from general_motion_retargeting import ROBOT_XML_DICT, ROBOT_BASE_DICT, VIEWER_C
 from loop_rate_limiters import RateLimiter
 from rich import print
 
+
+def add_object_assets_to_xml(
+    base_xml_path: str,
+    mesh_path: str,
+    mesh_name: str = "object_viz_mesh",
+    pos=(0.0, 0.0, 0.0),
+    quat=(1.0, 0.0, 0.0, 0.0),  # w, x, y, z
+    rgba=(0.8, 0.8, 0.8, 1.0),
+):
+    base_xml_path = Path(base_xml_path).expanduser().resolve()
+    mesh_path = Path(mesh_path).expanduser().resolve()
+    base_dir = base_xml_path.parent.as_posix()
+
+    # --- load and parse the base XML (must have <mujoco> root)
+    tree = ET.parse(base_xml_path)
+    root = tree.getroot()
+
+    asset = root.find("asset")
+    mesh_el = ET.SubElement(asset, "mesh", {
+        "name": mesh_name,
+        "file": mesh_path.as_posix(),
+        "scale": "0.001 0.001 0.001",  # assuming input mesh is in mm
+    })
+
+    # --- ensure <worldbody> exists; add a visual-only body/geom
+    worldbody = root.find("worldbody")
+    body = ET.SubElement(worldbody, "body", {
+        "name": "object_viz",
+        "pos": f"{pos[0]} {pos[1]} {pos[2]}",
+        "quat": f"{quat[0]} {quat[1]} {quat[2]} {quat[3]}",
+        "mocap": "true",  # make sure the body does not affect physics
+    })
+    ET.SubElement(body, "geom", {
+        "type": "mesh",
+        "mesh": mesh_name,
+        "contype": "0",
+        "conaffinity": "0",
+        "group": "1",
+        "rgba": f"{rgba[0]} {rgba[1]} {rgba[2]} {rgba[3]}",
+    })
+
+    # write out modified XML to a temporary file
+    wrapper_xml = base_dir + f"/{base_xml_path.stem}_temp.xml"
+    tree.write(wrapper_xml)
+    return wrapper_xml
 
 
 def draw_frame(
@@ -49,6 +96,7 @@ def draw_frame(
 class RobotMotionViewer:
     def __init__(self,
                 robot_type,
+                object_mesh_path=None,
                 camera_follow=True,
                 motion_fps=30,
                 transparent_robot=0,
@@ -59,8 +107,13 @@ class RobotMotionViewer:
                 video_height=480):
         
         self.robot_type = robot_type
-        self.xml_path = ROBOT_XML_DICT[robot_type]
-        self.model = mj.MjModel.from_xml_path(str(self.xml_path))
+        xml_path = ROBOT_XML_DICT[robot_type]
+        if object_mesh_path is not None:
+            xml_path = add_object_assets_to_xml(
+                xml_path,
+                mesh_path=object_mesh_path,
+            )
+        self.model = mj.MjModel.from_xml_path(xml_path)
         self.data = mj.MjData(self.model)
         self.robot_base = ROBOT_BASE_DICT[robot_type]
         self.viewer_cam_distance = VIEWER_CAM_DISTANCE_DICT[robot_type]
@@ -107,6 +160,7 @@ class RobotMotionViewer:
             human_point_scale=0.1,
             # human pos offset add for visualization    
             human_pos_offset=np.array([0.0, 0.0, 0]),
+            object_pose=None,
             # rate limit
             rate_limit=True, 
         ):
@@ -123,7 +177,14 @@ class RobotMotionViewer:
         self.data.qpos[:3] = root_pos
         self.data.qpos[3:7] = root_rot # quat need to be scalar first! for mujoco
         self.data.qpos[7:] = dof_pos
-        
+
+        if object_pose is not None:
+            object_pos, object_rot = object_pose[:3], object_pose[3:]
+            bid = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_BODY, "object_viz")
+            mocap_id = self.model.body_mocapid[bid]
+            self.data.mocap_pos[mocap_id] = object_pos
+            self.data.mocap_quat[mocap_id] = object_rot
+            
         mj.mj_forward(self.model, self.data)
 
         if self.record_video:
@@ -145,6 +206,16 @@ class RobotMotionViewer:
                     joint_name=human_body_name if show_human_body_name else None,
                     pos_offset=human_pos_offset,
                 )
+
+        if object_pose is not None:
+            # Draw object frame
+            draw_frame(
+                object_pos,
+                R.from_quat(object_rot, scalar_first=True).as_matrix(),
+                self.viewer.user_scn,
+                size=human_point_scale,
+                joint_name="object" if show_human_body_name else None,
+            )
 
         self.viewer.sync()
         if rate_limit is True:

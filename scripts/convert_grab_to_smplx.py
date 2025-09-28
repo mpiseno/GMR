@@ -10,9 +10,12 @@ from scipy.spatial.transform import Rotation as R
 from smplx.joint_names import JOINT_NAMES
 
 
+GRAB_DATA_ROOT = "/home/michael/data/GRAB"
+
+
 # These paths are from the GRAB dataset npz files
 motion_files = [
-    'data/GRAB/s1/apple_lift.npz',
+    f'{GRAB_DATA_ROOT}/grab/s1/apple_lift.npz',
     # '/move/u/mpiseno/data/GRAB/grab/s1/banana_pass_1.npz',
     # '/move/u/mpiseno/data/GRAB/grab/s1/binoculars_see_1.npz',
     # '/move/u/mpiseno/data/GRAB/grab/s1/cubelarge_lift.npz',
@@ -30,6 +33,7 @@ def construct_smplx_data(smplx_file):
     body_dict = data["body"].item()["params"]
     lhand_dict = data["lhand"].item()["params"]
     rhand_dict = data["rhand"].item()["params"]
+    object_dict = data["object"].item()["params"]
     smplx_data = {}
     smplx_data["mocap_frame_rate"] = data["framerate"]
     smplx_data["gender"] = data["gender"]
@@ -39,6 +43,12 @@ def construct_smplx_data(smplx_file):
     smplx_data["trans"] = body_dict["transl"]
     smplx_data["left_hand_pose"] = lhand_dict["fullpose"]
     smplx_data["right_hand_pose"] = rhand_dict["fullpose"]
+    smplx_data["object_global_quat"] = R.from_rotvec(object_dict["global_orient"]).as_quat(scalar_first=True)
+    smplx_data["object_global_pos"] = object_dict["transl"]
+
+    object_mesh_path = GRAB_DATA_ROOT / Path(data["object"].item()["object_mesh"])
+    object_mesh_path = object_mesh_path.parent / (object_mesh_path.stem + ".stl")
+    smplx_data["object_mesh_path"] = object_mesh_path.as_posix()
     return smplx_data
 
 

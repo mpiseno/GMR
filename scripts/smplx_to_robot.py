@@ -83,19 +83,24 @@ if __name__ == "__main__":
     
     # Load SMPLX trajectory
 
-    smplx_data, body_model, smplx_output, actual_human_height, is_smplh = load_smplx_file(
+    smplx_data, body_model, smplx_output, actual_human_height, is_smplh, has_object = load_smplx_file(
         args.smplx_file, SMPLX_FOLDER
     )
     
     # align fps
     tgt_fps = 30
-    smplx_data_frames, aligned_fps = get_smplx_data_offline_fast(
+    smplx_data_frames, object_poses, aligned_fps = get_smplx_data_offline_fast(
         smplx_data, body_model, smplx_output, tgt_fps=tgt_fps,
-        is_smplh=is_smplh
+        is_smplh=is_smplh, has_object=has_object
     )
+    object_mesh_path = None
+    if has_object:
+        assert object_poses.shape[0] == len(smplx_data_frames)
+        object_mesh_path = smplx_data["object_mesh_path"]
 
     video_path = f"videos/{args.robot}_{args.smplx_file.split('/')[-1].split('.')[0]}.mp4"
     robot_motion_viewer = RobotMotionViewer(robot_type=args.robot,
+                                            object_mesh_path=object_mesh_path,
                                             motion_fps=aligned_fps,
                                             transparent_robot=0,
                                             record_video=args.record_video,
@@ -107,6 +112,9 @@ if __name__ == "__main__":
         tgt_robot=args.robot,
         max_iters=args.max_iters,
     )
+    if has_object:
+        object_motion_scale = 0.8 # just manually determine this for now
+        object_poses[:, :3] *= object_motion_scale
 
     curr_frame = 0
     # FPS measurement variables
@@ -141,6 +149,7 @@ if __name__ == "__main__":
         
         # Update task targets.
         smplx_data = smplx_data_frames[i]
+        object_pose = object_poses[i] if has_object else None
 
         # retarget
         qpos = retarget.retarget(smplx_data)
@@ -155,6 +164,7 @@ if __name__ == "__main__":
             # human_motion_data=smplx_data,
             human_pos_offset=np.array([0.0, 0.0, 0.0]),
             show_human_body_name=False,
+            object_pose=object_pose,
             rate_limit=args.rate_limit,
         )
         if args.save_path is not None:
