@@ -34,6 +34,7 @@ def construct_smplx_data(smplx_file):
     lhand_dict = data["lhand"].item()["params"]
     rhand_dict = data["rhand"].item()["params"]
     object_dict = data["object"].item()["params"]
+    table_dict = data["table"].item()["params"]
     smplx_data = {}
     smplx_data["mocap_frame_rate"] = data["framerate"]
     smplx_data["gender"] = data["gender"]
@@ -43,7 +44,8 @@ def construct_smplx_data(smplx_file):
     smplx_data["trans"] = body_dict["transl"]
     smplx_data["left_hand_pose"] = lhand_dict["fullpose"]
     smplx_data["right_hand_pose"] = rhand_dict["fullpose"]
-    smplx_data["object_global_quat"] = R.from_rotvec(object_dict["global_orient"]).as_quat(scalar_first=True)
+    # Negate the axis-angle rotation is necessary to get correct rotation in Mujoco
+    smplx_data["object_global_quat"] = R.from_rotvec(-object_dict["global_orient"]).as_quat(scalar_first=True)
     smplx_data["object_global_pos"] = object_dict["transl"]
 
     object_mesh_path = GRAB_DATA_ROOT / Path(data["object"].item()["object_mesh"])

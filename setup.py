@@ -15,7 +15,7 @@ setup(
     "loop_rate_limiters",
     "mink",
     "mujoco",
-    "numpy",
+    "numpy==1.26.0",
     "scipy",
     "qpsolvers[proxqp]",
     "rich",

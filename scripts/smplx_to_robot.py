@@ -148,11 +148,13 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
+        # i = 0
         smplx_data = smplx_data_frames[i]
         object_pose = object_poses[i] if has_object else None
 
         # retarget
         qpos = retarget.retarget(smplx_data)
+        # qpos = retarget.configuration.data.qpos.copy()
 
         # visualize
         robot_motion_viewer.step(
@@ -172,21 +174,23 @@ if __name__ == "__main__":
             
     if args.save_path is not None:
         import pickle
-        root_pos = np.array([qpos[:3] for qpos in qpos_list])
+        qposes = np.stack(qpos_list)
+        root_pos = qposes[:, :3]
         # save from wxyz to xyzw
-        root_rot = np.array([qpos[3:7][[1,2,3,0]] for qpos in qpos_list])
-        dof_pos = np.array([qpos[7:] for qpos in qpos_list])
-        local_body_pos = None
-        body_names = None
-        
+        root_rot = qposes[:, 3:7] # wxyz
+        dof_pos = qposes[:, 7:]
         motion_data = {
             "fps": aligned_fps,
             "root_pos": root_pos,
             "root_rot": root_rot,
             "dof_pos": dof_pos,
-            "local_body_pos": local_body_pos,
-            "link_body_list": body_names,
+            "dof_names": robot_motion_viewer.robot_dof_names, # in order
         }
+        if has_object:
+            motion_data["object_pos"] = object_poses[:, :3]
+            motion_data["object_rot"] = object_poses[:, 3:]
+            motion_data["object_name"] = pathlib.Path(object_mesh_path).stem
+
         with open(args.save_path, "wb") as f:
             pickle.dump(motion_data, f)
         print(f"Saved to {args.save_path}")

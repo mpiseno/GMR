@@ -4,9 +4,14 @@
   <default>
     <motor ctrlrange="-1 1" ctrllimited="true"/>
     <joint actuatorfrclimited="true" type="hinge"/>
+    <default class="visual">
+        <geom group="2" type="mesh" contype="0" conaffinity="0" density="0" material="metal"/>
+      </default>
   </default>
 
   <asset>
+    <material name="black" rgba="0.2 0.2 0.2 0.5"/>
+    <material name="metal" rgba="0.7 0.7 0.7 0.5"/>
     <mesh name="pelvis" file="pelvis.STL"/>
     <mesh name="pelvis_contour_link" file="pelvis_contour_link.STL"/>
     <mesh name="left_hip_pitch_link" file="left_hip_pitch_link.STL"/>

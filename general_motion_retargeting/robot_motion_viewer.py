@@ -149,6 +149,16 @@ class RobotMotionViewer:
             
             # Initialize renderer for video recording
             self.renderer = mj.Renderer(self.model, height=video_height, width=video_width)
+
+    @property
+    def robot_dof_names(self):
+        return [
+            self.model.joint(jid).name for jid in range(self.model.njnt)
+            if (
+                self.model.jnt_dofadr[jid] >=0
+                and self.model.joint(jid).type != mj.mjtJoint.mjJNT_FREE
+            )
+        ]
         
     def step(self, 
             # robot data
