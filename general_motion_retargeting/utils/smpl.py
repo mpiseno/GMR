@@ -32,8 +32,7 @@ def load_smpl_file(smpl_file):
 
 def load_smplx_file(smplx_file, smplx_body_model_path):
     smplx_data = np.load(smplx_file, allow_pickle=True)
-    # is_smplh = "left_hand_pose" in smplx_data.keys()
-    is_smplh = False # TODO: Change back later
+    is_smplh = "left_hand_pose" in smplx_data.keys()
     has_object = "object_mesh_path" in smplx_data.keys()
     body_model = smplx.create(
         smplx_body_model_path,

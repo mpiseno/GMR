@@ -64,7 +64,6 @@ def main():
         print(f"Processing {motion_file}...")
         subject = motion_file.split('/')[-2]  # e.g., 's1'
         seq_name = motion_file.split('/')[-1][:-len('.npz')] # e.g., 'apple_lift'
-        motion_file.split('/')[:-3]
 
         smplx_data = construct_smplx_data(motion_file)
 
