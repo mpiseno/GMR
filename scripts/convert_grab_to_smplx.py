@@ -45,8 +45,10 @@ def construct_smplx_data(smplx_file):
     smplx_data["left_hand_pose"] = lhand_dict["fullpose"]
     smplx_data["right_hand_pose"] = rhand_dict["fullpose"]
     # Negate the axis-angle rotation is necessary to get correct rotation in Mujoco
-    smplx_data["object_global_quat"] = R.from_rotvec(-object_dict["global_orient"]).as_quat(scalar_first=True)
+    smplx_data["object_global_quat"] = R.from_rotvec(object_dict["global_orient"]).as_quat(scalar_first=True)
     smplx_data["object_global_pos"] = object_dict["transl"]
+
+    smplx_data["object_contact"] = data["contact"].item()["object"]
 
     object_mesh_path = GRAB_DATA_ROOT / Path(data["object"].item()["object_mesh"])
     object_mesh_path = object_mesh_path.parent / (object_mesh_path.stem + ".stl")

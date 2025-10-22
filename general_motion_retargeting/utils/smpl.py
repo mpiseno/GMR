@@ -1,6 +1,9 @@
+import ipdb
 import numpy as np
 import smplx
 import torch
+import trimesh
+import collections
 from scipy.spatial.transform import Rotation as R
 from smplx.joint_names import JOINT_NAMES
 from scipy.interpolate import interp1d
@@ -269,6 +272,61 @@ def get_smplx_data_offline_fast(smplx_data, body_model, smplx_output, tgt_fps=30
         for i in range(len(global_orient))
     ]
     return smplx_data_frames, object_poses, aligned_fps
+
+
+def get_contacts(smplx_data):
+    print(f"Getting contact points...")
+    contacts = smplx_data["object_contact"]
+    object_global_pos = smplx_data["object_global_pos"]
+    object_global_quat = smplx_data["object_global_quat"]
+    object_mesh_path = smplx_data["object_mesh_path"]
+    num_frames = contacts.shape[0]
+
+    # Construct ojbect transforms
+    obj_R = R.from_quat(object_global_quat, scalar_first=True).as_matrix()
+    obj_T = object_global_pos
+
+    # Get vertex positions in object local frame
+    mesh = trimesh.load(object_mesh_path, process=False)
+    mesh.visual.face_colors = [150, 150, 150, 80]
+    obj_verts = np.array(mesh.vertices)
+
+    contact_data = []
+    for t in range(num_frames):
+        contact = contacts[t]
+        if contact.sum() == 0:
+            # 0 means no contacts
+            contact_data.append({})
+            continue
+
+        obj_verts_w = (obj_R[t] @ obj_verts.T).T + obj_T[t][None, :]
+        contact_parts = np.unique(contact[contact != 0])
+        contact_dict = {}
+        for part in contact_parts:
+            # https://github.com/otaheri/GRAB/blob/284cba757bd10364fd38eb883c33d4490c4d98f5/tools/utils.py#L166
+            part_name = JOINT_NAMES[part - 1]
+            part_contact_verts = np.where(contact == part)[0]
+            part_contact_points = obj_verts_w[part_contact_verts]
+            part_contact_point = part_contact_points.mean(axis=0)
+            contact_dict[part_name] = part_contact_point
+
+        if len(contact_dict) == 3:
+            print(contact_dict)
+            print(t)
+            contact_data.append(contact_dict)
+            scene = trimesh.Scene()
+            scene.add_geometry(mesh)
+            for part_name, point in contact_dict.items():
+                sphere = trimesh.creation.icosphere(radius=1, subdivisions=2)
+                sphere.visual.face_colors = [255, 0, 0, 255]
+                sphere.apply_translation(point)
+                scene.add_geometry(sphere)
+            
+            scene.show()
+        
+            ipdb.set_trace()
+
+    return contact_data
 
 
 def get_joints_from_names(smplx_output, joint_names):

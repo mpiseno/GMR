@@ -9,7 +9,7 @@ from scipy.spatial.transform import Rotation as R
 
 from general_motion_retargeting import GeneralMotionRetargeting as GMR
 from general_motion_retargeting import RobotMotionViewer
-from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast
+from general_motion_retargeting.utils.smpl import load_smplx_file, get_smplx_data_offline_fast, get_contacts
 
 from rich import print
 
@@ -93,6 +93,9 @@ if __name__ == "__main__":
         smplx_data, body_model, smplx_output, tgt_fps=tgt_fps,
         is_smplh=is_smplh, has_object=has_object
     )
+    # returns dict {"joint_name": contact position} for each timestep
+    contact_data = get_contacts(smplx_data)
+
     object_mesh_path = None
     if has_object:
         assert object_poses.shape[0] == len(smplx_data_frames)
@@ -148,7 +151,7 @@ if __name__ == "__main__":
             fps_start_time = current_time
         
         # Update task targets.
-        # i = 0
+        i = 0
         smplx_data = smplx_data_frames[i]
         object_pose = object_poses[i] if has_object else None
 

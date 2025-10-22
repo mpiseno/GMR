@@ -503,7 +503,7 @@
         ],
         "left_hand_index_finger_tip": [
             "left_index",
-            10,
+            100,
             5,
             [
                 0.0,
@@ -519,7 +519,7 @@
         ],
         "left_hand_middle_finger_tip": [
             "left_ring",
-            10,
+            100,
             5,
             [
                 0.0,
@@ -535,7 +535,7 @@
         ],
         "left_hand_thumb_finger_tip": [
             "left_thumb",
-            10,
+            100,
             5,
             [
                 0.0,
@@ -594,7 +594,7 @@
         ],
         "right_hand_index_finger_tip": [
             "right_index",
-            10,
+            100,
             5,
             [
                 0.0,
@@ -610,7 +610,7 @@
         ],
         "right_hand_middle_finger_tip": [
             "right_ring",
-            10,
+            100,
             5,
             [
                 0.0,
@@ -626,7 +626,7 @@
         ],
         "right_hand_thumb_finger_tip": [
             "right_thumb",
-            10,
+            100,
             5,
             [
                 0.0,
